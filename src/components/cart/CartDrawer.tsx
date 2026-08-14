@@ -6,8 +6,13 @@ import { X, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+import { useAuthStore } from '@/store/authStore';
+import { useRouter } from 'next/navigation';
+
 export function CartDrawer() {
   const { items, isCartOpen, setCartOpen, removeItem, updateQuantity, getTotal } = useCartStore();
+  const { isAuthenticated } = useAuthStore();
+  const router = useRouter();
 
   return (
     <AnimatePresence>
@@ -73,7 +78,7 @@ export function CartDrawer() {
                         </button>
                       </div>
                       <div className="flex justify-between items-end mt-2">
-                        <p className="font-label-md text-primary font-bold">${item.price.toFixed(2)}</p>
+                        <p className="font-label-md text-primary font-bold">₹{item.price.toFixed(2)}</p>
                         <div className="flex items-center gap-3 bg-surface border border-outline-variant rounded-full px-2 py-1">
                           <button 
                             onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
@@ -100,18 +105,26 @@ export function CartDrawer() {
               <div className="p-6 bg-surface-container-lowest border-t border-outline-variant">
                 <div className="flex justify-between mb-2">
                   <span className="font-body-md text-on-surface-variant">Subtotal</span>
-                  <span className="font-label-md text-on-surface">${getTotal().toFixed(2)}</span>
+                  <span className="font-label-md text-on-surface">₹{getTotal().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between mb-6">
                   <span className="font-body-md text-on-surface-variant">Shipping</span>
                   <span className="font-label-md text-on-surface">Calculated at checkout</span>
                 </div>
-                <Link href="/checkout" onClick={() => setCartOpen(false)}>
-                  <button className="w-full bg-primary text-on-primary py-4 rounded-xl font-label-md flex items-center justify-center gap-2 hover:bg-primary-container hover:text-on-primary-container transition-all hover:gap-3 group shadow-lg shadow-primary/20">
-                    Proceed to Checkout
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                  </button>
-                </Link>
+                <button 
+                  onClick={() => {
+                    setCartOpen(false);
+                    if (isAuthenticated) {
+                      router.push('/checkout');
+                    } else {
+                      router.push('/login?redirect=/checkout');
+                    }
+                  }}
+                  className="w-full bg-primary text-on-primary py-4 rounded-xl font-label-md flex items-center justify-center gap-2 hover:bg-primary-container hover:text-on-primary-container transition-all hover:gap-3 group shadow-lg shadow-primary/20"
+                >
+                  Proceed to Checkout
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </button>
               </div>
             )}
           </motion.div>

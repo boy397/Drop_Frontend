@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useGamificationStore } from "@/store/gamificationStore";
 
-const PRIZES = ["$5 OFF", "Free Shipping", "15% OFF", "Try Again"];
+const PRIZES = ["₹500 OFF", "Free Shipping", "15% OFF", "Try Again"];
 
 export function ScratchCard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);

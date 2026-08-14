@@ -17,9 +17,10 @@ const inter = Inter({
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import SmoothScroll from "@/components/SmoothScroll";
+import MobileBottomBar from "@/components/mobile/MobileBottomBar";
 
 export const metadata: Metadata = {
-  title: "LUXE | Premium E-Commerce",
+  title: "NOVARIX | Premium E-Commerce",
   description: "The silent precision of modern elegance.",
 };
 
@@ -34,6 +35,9 @@ export default function RootLayout({
       className={`${plusJakartaSans.variable} ${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+      </head>
       <body className="min-h-full flex flex-col transition-colors duration-300">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <Navbar />
@@ -42,6 +46,7 @@ export default function RootLayout({
               {children}
             </main>
           </SmoothScroll>
+          <MobileBottomBar />
           <CartDrawer />
           <Toaster 
             position="bottom-right" 

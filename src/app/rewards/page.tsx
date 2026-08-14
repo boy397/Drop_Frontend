@@ -4,14 +4,41 @@ import { motion } from 'framer-motion';
 import { SpinningWheel } from '@/components/gamification/SpinningWheel';
 import { ScratchCard } from '@/components/gamification/ScratchCard';
 import { useGamificationStore } from '@/store/gamificationStore';
-import { Sparkles, Ticket } from 'lucide-react';
+import { Sparkles, Ticket, Lock } from 'lucide-react';
 import { TiltCard } from '@/components/3DCard';
+import { useEffect, useState } from 'react';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 
 export default function RewardsPage() {
   const { spinsAvailable, couponsClaimed } = useGamificationStore();
+  const { isAuthenticated } = useAuthStore();
+  const [hasPurchased, setHasPurchased] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkPurchases = async () => {
+      if (!isAuthenticated) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await api.get('/orders/history');
+        if (res.data.data.orders && res.data.data.orders.length > 0) {
+          setHasPurchased(true);
+        }
+      } catch (error) {
+        console.error('Failed to check purchases:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkPurchases();
+  }, [isAuthenticated]);
 
   return (
-    <div className="bg-surface min-h-screen pt-12 pb-40">
+    <div className="bg-surface min-h-screen pt-24 md:pt-12 pb-40">
       <div className="max-w-[1440px] mx-auto px-6">
         
         {/* Header */}
@@ -19,11 +46,11 @@ export default function RewardsPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="mb-20 text-center max-w-2xl mx-auto"
+          className="mb-12 md:mb-20 text-center max-w-2xl mx-auto"
         >
           <span className="font-label-md text-primary uppercase tracking-[0.2em] mb-4 block">Exclusive Benefits</span>
-          <h1 className="font-headline-xl text-on-surface mb-6 text-5xl">LUXE Rewards</h1>
-          <p className="font-body-md text-on-surface-variant text-lg leading-relaxed">
+          <h1 className="font-headline-xl text-on-surface mb-6 text-4xl md:text-5xl">LUXE Rewards</h1>
+          <p className="font-body-md text-on-surface-variant text-base md:text-lg leading-relaxed">
             Engage with our ecosystem to unlock exclusive discounts, early access, and complimentary gifts. Your loyalty, rewarded with precision.
           </p>
         </motion.header>
@@ -54,24 +81,31 @@ export default function RewardsPage() {
         </div>
 
         {/* Gamification Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-32 relative z-10" style={{ perspective: "1000px" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 mb-20 md:mb-32 relative z-10" style={{ perspective: "1000px" }}>
           
           {/* Wheel Section */}
           <TiltCard 
-            className="w-full bg-surface-container-low rounded-[2.5rem] p-8 lg:p-14 soft-shadow border border-outline-variant/30 flex flex-col items-center justify-center overflow-hidden"
+            className="w-full bg-surface-container-low rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-14 soft-shadow border border-outline-variant/30 flex flex-col items-center justify-center overflow-hidden relative"
           >
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
-            <div className="text-center mb-10 relative z-10">
-              <div className="w-16 h-16 bg-surface rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-                <Sparkles className="w-8 h-8 text-primary" />
+            {(!hasPurchased || loading) && (
+              <div className="absolute inset-0 bg-surface/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center text-center p-6">
+                <Lock className="w-12 h-12 text-on-surface-variant mb-4" />
+                <h3 className="font-headline-md text-xl mb-2">Unlock Rewards</h3>
+                <p className="text-on-surface-variant text-sm">Make your first purchase to unlock the Daily Spin and Mystery Cards.</p>
               </div>
-              <h2 className="font-headline-lg text-on-surface mb-3">The Daily Spin</h2>
-              <p className="font-body-md text-on-surface-variant">
+            )}
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
+            <div className="text-center mb-8 md:mb-10 relative z-10">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-surface rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-sm">
+                <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-primary" />
+              </div>
+              <h2 className="font-headline-lg text-on-surface mb-2 md:mb-3 text-2xl md:text-3xl">The Daily Spin</h2>
+              <p className="font-body-md text-on-surface-variant text-sm md:text-base">
                 Test your luck every day to win exclusive percentages off your next order.
               </p>
             </div>
             
-            <div className="relative z-10 w-full flex justify-center">
+            <div className="relative z-10 w-full flex justify-center scale-90 md:scale-100 transform origin-center">
               <SpinningWheel />
             </div>
           </TiltCard>
@@ -79,21 +113,30 @@ export default function RewardsPage() {
           {/* Scratch Card Section */}
           <TiltCard 
             delay={0.1}
-            className="w-full bg-surface-container-low rounded-[2.5rem] p-8 lg:p-14 soft-shadow border border-outline-variant/30 flex flex-col items-center justify-center overflow-hidden"
+            className="w-full bg-surface-container-low rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-14 soft-shadow border border-outline-variant/30 flex flex-col items-center justify-center overflow-hidden relative"
           >
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-bl from-primary/5 to-transparent pointer-events-none"></div>
-             <div className="text-center mb-10 relative z-10">
-              <div className="w-16 h-16 bg-surface rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-                <Ticket className="w-8 h-8 text-primary" />
+            {(!hasPurchased || loading) && (
+              <div className="absolute inset-0 bg-surface/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center text-center p-6">
+                <Lock className="w-12 h-12 text-on-surface-variant mb-4" />
+                <h3 className="font-headline-md text-xl mb-2">Unlock Mystery Card</h3>
+                <p className="text-on-surface-variant text-sm">Make a purchase to unlock scratch cards with hidden offers.</p>
               </div>
-              <h2 className="font-headline-lg text-on-surface mb-3">Mystery Card</h2>
-              <p className="font-body-md text-on-surface-variant">
+            )}
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-bl from-primary/5 to-transparent pointer-events-none"></div>
+             <div className="text-center mb-8 md:mb-10 relative z-10">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-surface rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-sm">
+                <Ticket className="w-6 h-6 md:w-8 md:h-8 text-primary" />
+              </div>
+              <h2 className="font-headline-lg text-on-surface mb-2 md:mb-3 text-2xl md:text-3xl">Mystery Card</h2>
+              <p className="font-body-md text-on-surface-variant text-sm md:text-base">
                 Scratch to reveal hidden offers. Available once per purchase event.
               </p>
             </div>
             
-            <div className="relative z-10 w-full">
-              <ScratchCard />
+            <div className="relative z-10 w-full flex justify-center overflow-hidden rounded-xl">
+              <div className="scale-90 md:scale-100 transform origin-center max-w-full overflow-hidden">
+                <ScratchCard />
+              </div>
             </div>
           </TiltCard>
 
@@ -107,15 +150,15 @@ export default function RewardsPage() {
           transition={{ duration: 0.6 }}
           className="max-w-4xl mx-auto"
         >
-          <div className="flex items-center gap-4 mb-10">
-            <h2 className="font-headline-lg text-on-surface whitespace-nowrap">
+          <div className="flex flex-col md:flex-row md:items-center gap-4 mb-10">
+            <h2 className="font-headline-lg text-on-surface whitespace-nowrap text-2xl md:text-3xl">
               Your Unlocked Offers
             </h2>
-            <div className="h-[1px] w-full bg-outline-variant/30"></div>
+            <div className="h-[1px] w-full bg-outline-variant/30 hidden md:block"></div>
           </div>
           
           {couponsClaimed && couponsClaimed.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
               {couponsClaimed.map((coupon, idx) => (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -123,17 +166,17 @@ export default function RewardsPage() {
                   viewport={{ once: true }}
                   transition={{ delay: idx * 0.1, type: "spring", stiffness: 200 }}
                   key={idx} 
-                  className="bg-surface border border-outline-variant/50 rounded-2xl p-8 text-center shadow-sm relative overflow-hidden group hover:border-primary/50 transition-colors"
+                  className="bg-surface border border-outline-variant/50 rounded-2xl p-6 md:p-8 text-center shadow-sm relative overflow-hidden group hover:border-primary/50 transition-colors"
                 >
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary-container transform origin-left scale-x-100 group-hover:scale-x-0 transition-transform duration-500"></div>
-                  <h3 className="font-headline-lg text-primary mb-2 font-bold">{coupon}</h3>
-                  <p className="font-caption text-on-surface-variant text-[13px] uppercase tracking-wider">Ready to use at checkout</p>
+                  <h3 className="font-headline-lg text-primary mb-2 font-bold text-xl md:text-2xl">{coupon}</h3>
+                  <p className="font-caption text-on-surface-variant text-[12px] md:text-[13px] uppercase tracking-wider">Ready to use at checkout</p>
                 </motion.div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-24 bg-surface-container-low rounded-3xl border border-dashed border-outline-variant/50">
-              <p className="font-body-md text-on-surface-variant text-lg max-w-[448px] mx-auto">
+            <div className="text-center py-16 md:py-24 bg-surface-container-low rounded-3xl border border-dashed border-outline-variant/50">
+              <p className="font-body-md text-on-surface-variant text-base md:text-lg max-w-[448px] mx-auto px-4">
                 You haven&apos;t unlocked any offers yet. Spin the wheel or scratch a card to begin.
               </p>
             </div>

@@ -6,13 +6,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useProductStore } from '@/store/productStore';
 import { useCartStore } from '@/store/cartStore';
-import { ShoppingCart } from 'lucide-react';
+import { useWishlistStore } from '@/store/wishlistStore';
+import { ShoppingCart, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import ProductSkeleton from '@/components/products/ProductSkeleton';
 
 export default function Home() {
   const { trendingProducts, fetchTrendingProducts, isLoading } = useProductStore();
   const { addItem, setCartOpen } = useCartStore();
+  const { toggleItem, isInWishlist } = useWishlistStore();
   const heroRef = useRef<HTMLDivElement>(null);
   
   const { scrollYProgress } = useScroll({
@@ -29,12 +31,12 @@ export default function Home() {
   }, [fetchTrendingProducts]);
 
   return (
-    <div className="pt-8">
+    <div className="pt-20 md:pt-8">
       {/* Hero Collage Section */}
       <section ref={heroRef} className="max-w-[1440px] mx-auto px-6 py-10 overflow-hidden">
-        <div className="grid grid-cols-12 grid-rows-2 gap-4 h-[716px] md:h-[870px]">
+        <div className="flex flex-col md:grid md:grid-cols-12 md:grid-rows-2 gap-4 md:h-[870px]">
           {/* Main Large Feature: Fashion */}
-          <div className="col-span-12 md:col-span-7 row-span-2 relative overflow-hidden rounded-2xl group hero-collage-item">
+          <div className="md:col-span-7 md:row-span-2 relative overflow-hidden rounded-2xl group hero-collage-item h-[500px] md:h-auto">
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
             <motion.div 
               className="absolute -inset-10 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110" 
@@ -53,7 +55,7 @@ export default function Home() {
           </div>
           
           {/* Secondary: Tech */}
-          <div className="col-span-12 md:col-span-5 row-span-1 relative overflow-hidden rounded-2xl group hero-collage-item">
+          <div className="md:col-span-5 md:row-span-1 relative overflow-hidden rounded-2xl group hero-collage-item h-[300px] md:h-auto">
             <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent z-10"></div>
             <motion.div 
               className="absolute -inset-10 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110" 
@@ -70,7 +72,7 @@ export default function Home() {
           </div>
 
           {/* Tertiary: Accessories */}
-          <div className="col-span-12 md:col-span-5 row-span-1 relative overflow-hidden rounded-2xl group hero-collage-item">
+          <div className="md:col-span-5 md:row-span-1 relative overflow-hidden rounded-2xl group hero-collage-item h-[300px] md:h-auto">
             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors z-10"></div>
             <motion.div 
               className="absolute -inset-10 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110" 
@@ -167,7 +169,7 @@ export default function Home() {
           className="flex justify-between items-end mb-16"
         >
           <div>
-            <h2 className="font-headline-xl text-on-surface">Trending Now</h2>
+            <h2 className="font-headline-xl text-on-surface text-3xl md:text-5xl">Trending Now</h2>
             <p className="text-on-surface-variant font-body-md mt-2">Highly-coveted pieces curated for this week.</p>
           </div>
           <Link href="/products" className="font-label-md text-primary flex items-center gap-2 hover:gap-3 transition-all duration-300 group">
@@ -190,7 +192,7 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-50px" }}
                   transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
-                  key={product.id} 
+                  key={product._id || product.id || index}
                   className="group cursor-pointer flex flex-col"
                 >
                   <Link href={`/products/${product.slug}`} className="flex-1 flex flex-col">
@@ -208,8 +210,29 @@ export default function Home() {
                       <button 
                         onClick={(e) => {
                           e.preventDefault();
+                          toggleItem({
+                            id: product._id || product.id || '',
+                            name: product.name,
+                            price: product.price,
+                            compareAtPrice: product.compareAtPrice,
+                            image: product.images?.[0] || '',
+                            slug: product.slug,
+                          });
+                          if (!isInWishlist(product._id || product.id || '')) {
+                            toast.success('Added to Wishlist', { icon: '❤️' });
+                          } else {
+                            toast('Removed from Wishlist');
+                          }
+                        }}
+                        className={`absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 dark:bg-black/20 backdrop-blur-md flex items-center justify-center transition-all duration-300 md:opacity-0 transform md:translate-y-4 md:group-hover:opacity-100 md:group-hover:translate-y-0 z-20 active:scale-90 ${isInWishlist(product._id || product.id || '') ? 'text-red-500 opacity-100 translate-y-0' : 'text-white hover:bg-primary hover:text-white'}`}
+                      >
+                        <Heart className="w-5 h-5" fill={isInWishlist(product._id || product.id || '') ? "currentColor" : "none"} />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
                           addItem({
-                            id: product.id,
+                            id: product._id || product.id || '',
                             name: product.name,
                             price: product.price,
                             quantity: 1,
@@ -227,10 +250,17 @@ export default function Home() {
                         <ShoppingCart className="w-5 h-5" />
                       </button>
                     </div>
-                    <div className="flex justify-between items-start gap-4">
-                      <h3 className="font-body-md font-semibold text-on-surface group-hover:text-primary transition-colors line-clamp-1">{product.name}</h3>
-                      <p className="text-on-surface font-label-md">${product.price.toFixed(2)}</p>
-                    </div>
+                      <div className="flex justify-between items-start gap-4">
+                        <h3 className="font-body-md font-semibold text-on-surface group-hover:text-primary transition-colors line-clamp-1">{product.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[#00C853] font-label-md font-bold whitespace-nowrap">₹{product.price.toFixed(2)}</p>
+                          {product.compareAtPrice && product.compareAtPrice > product.price && (
+                            <p className="text-on-surface-variant font-label-md line-through opacity-60 text-xs whitespace-nowrap">
+                              ₹{product.compareAtPrice.toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                   </Link>
                 </motion.div>
               ))

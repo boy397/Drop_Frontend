@@ -45,6 +45,19 @@
 
   --font-plus-jakarta: "Plus Jakarta Sans", sans-serif;
   --font-inter: "Inter", sans-serif;
+
+  --spacing-stack-sm: 8px;
+  --spacing-stack-md: 16px;
+  --spacing-stack-lg: 24px;
+  --spacing-stack-xl: 40px;
+  --spacing-margin-mobile: 20px;
+  --spacing-gutter-mobile: 12px;
+  --spacing-touch-target-min: 44px;
+
+  --color-secondary: var(--secondary);
+  --color-on-secondary: var(--on-secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
 }
 
 @layer utilities {
@@ -100,6 +113,17 @@
     line-height: 1.4;
   }
   
+  .text-label-sm { font-size: 10px; line-height: 12px; }
+  .font-label-sm { font-weight: 700; letter-spacing: 0.08em; }
+  
+  .text-label-md { font-size: 12px; line-height: 16px; }
+  .text-headline-md { font-size: 20px; line-height: 28px; }
+  .font-headline-md { font-weight: 600; }
+  .text-body-lg { font-size: 16px; line-height: 24px; }
+  .text-body-md { font-size: 14px; line-height: 20px; }
+  .text-headline-lg { font-size: 24px; line-height: 32px; }
+  .text-headline-xl { font-size: 32px; line-height: 40px; }
+  
   .glass-card {
     background: rgba(255, 255, 255, 0.4);
     backdrop-filter: blur(12px);
@@ -144,6 +168,11 @@
   
   --background: #f8f9ff;
   --on-background: #0b1c30;
+  
+  --secondary: #006584;
+  --on-secondary: #ffffff;
+  --secondary-container: #c0e8ff;
+  --on-secondary-container: #001e2b;
 }
 
 .dark {
@@ -169,6 +198,11 @@
   
   --background: #0a0e17;
   --on-background: #eaf1ff;
+
+  --secondary: #7bd1fa;
+  --on-secondary: #003547;
+  --secondary-container: #004d66;
+  --on-secondary-container: #c0e8ff;
 }
 
 body {

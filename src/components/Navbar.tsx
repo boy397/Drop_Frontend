@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
+import { useWishlistStore } from '../store/wishlistStore';
 import { ShoppingCart, LogOut, Search, Heart, User } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { motion } from 'framer-motion';
@@ -11,8 +13,10 @@ import Image from 'next/image';
 import { toast } from 'sonner';
 
 export default function Navbar() {
+  const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { setCartOpen, items } = useCartStore();
+  const { items: wishlistItems } = useWishlistStore();
   const [searchOpen, setSearchOpen] = useState(false);
 
   const cartItemCount = items.reduce((total, item) => total + item.quantity, 0);
@@ -27,7 +31,7 @@ export default function Navbar() {
       <div className="flex justify-between items-center px-4 md:px-6 py-4 max-w-[1440px] mx-auto">
         <div className="flex items-center gap-10">
           <Link href="/" className="font-headline-lg text-[28px] font-bold tracking-tighter text-on-surface">
-            LUXE
+            NOVARIX
           </Link>
           <div className="hidden md:flex items-center gap-6">
             <Link href="/products" className="font-body-md text-on-surface-variant hover:text-primary transition-colors duration-300">
@@ -46,27 +50,34 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4 md:gap-6">
-          <div className="hidden sm:flex relative">
-            <div className={`flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-outline-variant transition-all ${searchOpen ? 'w-64' : 'w-48'}`}>
-              <Search className="text-on-surface-variant text-[20px] w-5 h-5 mr-2" />
-              <input 
-                className="bg-transparent border-none focus:ring-0 text-label-md w-full outline-none placeholder:text-on-surface-variant/70 text-on-surface" 
-                placeholder="Search..." 
-                type="text"
-                onFocus={() => setSearchOpen(true)}
-                onBlur={() => setSearchOpen(false)}
-              />
+          {pathname === '/products' && (
+            <div className="flex relative">
+              <div className={`flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-outline-variant transition-all ${searchOpen ? 'w-48 md:w-64' : 'w-10 md:w-48'} overflow-hidden`}>
+                <Search className="text-on-surface-variant text-[20px] w-5 h-5 flex-shrink-0 mr-2 cursor-pointer" onClick={() => setSearchOpen(true)} />
+                <input 
+                  className={`bg-transparent border-none focus:ring-0 text-label-md w-full outline-none placeholder:text-on-surface-variant/70 text-on-surface ${!searchOpen ? 'hidden md:block' : 'block'}`} 
+                  placeholder="Search..." 
+                  type="text"
+                  onFocus={() => setSearchOpen(true)}
+                  onBlur={() => setSearchOpen(false)}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <ThemeToggle />
           
-          <button 
-            onClick={() => toast('Favorites page coming soon!', { icon: '❤️' })}
-            className="text-on-surface-variant hover:text-primary transition-colors"
+          <Link 
+            href="/wishlist"
+            className="relative text-on-surface-variant hover:text-primary transition-colors"
           >
             <Heart className="w-5 h-5" />
-          </button>
+            {wishlistItems.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+                {wishlistItems.length}
+              </span>
+            )}
+          </Link>
 
           <button 
             onClick={() => setCartOpen(true)}

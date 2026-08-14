@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
 import { useGamificationStore } from "@/store/gamificationStore";
 import { useState } from "react";
+import { useAuthStore } from "@/store/authStore";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Trash2, Plus, Minus, ArrowRight } from "lucide-react";
@@ -11,6 +13,8 @@ import { Trash2, Plus, Minus, ArrowRight } from "lucide-react";
 export default function CartPage() {
   const { items, updateQuantity, removeItem, getTotal } = useCartStore();
   const { couponsClaimed } = useGamificationStore();
+  const { isAuthenticated } = useAuthStore();
+  const router = useRouter();
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
 
@@ -21,7 +25,7 @@ export default function CartPage() {
   if (appliedCoupon === "10% OFF") discount = subtotal * 0.1;
   if (appliedCoupon === "20% OFF") discount = subtotal * 0.2;
   if (appliedCoupon === "15% OFF") discount = subtotal * 0.15;
-  if (appliedCoupon === "$5 OFF") discount = 5;
+  if (appliedCoupon === "₹500 OFF") discount = 500;
 
   const total = Math.max(0, subtotal - discount);
 
@@ -79,7 +83,7 @@ export default function CartPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-bold text-lg text-black dark:text-white">{item.name}</h3>
-                        <p className="text-accent font-medium">${item.price.toFixed(2)}</p>
+                        <p className="text-accent font-medium">₹{item.price.toFixed(2)}</p>
                       </div>
                       <button 
                         onClick={() => removeItem(item.id)}
@@ -120,13 +124,13 @@ export default function CartPage() {
               <div className="space-y-4 mb-6 text-gray-600 dark:text-gray-300">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span className="font-medium text-black dark:text-white">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium text-black dark:text-white">₹{subtotal.toFixed(2)}</span>
                 </div>
                 
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600 dark:text-green-400 font-medium">
                     <span>Discount ({appliedCoupon})</span>
-                    <span>-${discount.toFixed(2)}</span>
+                    <span>-₹{discount.toFixed(2)}</span>
                   </div>
                 )}
                 
@@ -139,7 +143,7 @@ export default function CartPage() {
               <div className="border-t border-gray-100 dark:border-white/10 pt-4 mb-8">
                 <div className="flex justify-between items-center text-xl font-bold text-black dark:text-white">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -169,12 +173,18 @@ export default function CartPage() {
                 )}
               </form>
 
-              <Link 
-                href="/checkout"
+              <button 
+                onClick={() => {
+                  if (isAuthenticated) {
+                    router.push('/checkout');
+                  } else {
+                    router.push('/login?redirect=/checkout');
+                  }
+                }}
                 className="w-full bg-accent text-black font-bold text-lg py-4 rounded-xl flex items-center justify-center hover:scale-[1.02] transition-transform"
               >
                 Proceed to Checkout
-              </Link>
+              </button>
             </motion.div>
           </div>
         )}

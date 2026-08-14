@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useProductStore } from '@/store/productStore';
 import { useCartStore } from '@/store/cartStore';
+import { useWishlistStore } from '@/store/wishlistStore';
 import { ShoppingCart, Heart, Filter, X, SearchX } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -15,12 +16,15 @@ function ProductsPageContent() {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get('category');
   
-  const { products, fetchProducts, isLoading, setFilter, filters } = useProductStore();
+  const { products, fetchProducts, isLoading, setFilter, filters, categories, fetchCategories } = useProductStore();
   const { addItem, setCartOpen } = useCartStore();
+  const { toggleItem, isInWishlist } = useWishlistStore();
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState('Newest First');
+  const [maxPrice, setMaxPrice] = useState<number>(50000);
 
   useEffect(() => {
+    fetchCategories();
     if (categoryParam) {
       setFilter('category', categoryParam);
     } else {
@@ -34,7 +38,7 @@ function ProductsPageContent() {
   };
 
   return (
-    <div className="flex min-h-screen bg-surface text-on-surface font-body-md relative">
+    <div className="flex min-h-[calc(100vh-4rem)] bg-surface text-on-surface font-body-md relative">
       
       {/* Mobile Filter Toggle */}
       <div className="lg:hidden fixed bottom-6 right-6 z-50">
@@ -61,15 +65,15 @@ function ProductsPageContent() {
                 <span>Category</span>
               </div>
               <div className="pl-8 space-y-4 py-2">
-                {['electronics', 'fashion', 'accessories', 'home'].map((cat) => (
-                  <label key={cat} className="flex items-center gap-3 cursor-pointer hover:text-primary transition-colors group">
+                {categories.map((cat) => (
+                  <label key={cat._id} className="flex items-center gap-3 cursor-pointer hover:text-primary transition-colors group">
                     <input 
                       type="checkbox" 
-                      checked={filters.category === cat}
-                      onChange={() => handleCategoryChange(cat)}
+                      checked={filters.category === cat.slug}
+                      onChange={() => handleCategoryChange(cat.slug)}
                       className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary bg-transparent cursor-pointer" 
                     />
-                    <span className="text-label-md capitalize group-hover:translate-x-1 transition-transform">{cat}</span>
+                    <span className="text-label-md capitalize group-hover:translate-x-1 transition-transform">{cat.name}</span>
                   </label>
                 ))}
               </div>
@@ -78,13 +82,23 @@ function ProductsPageContent() {
             {/* Price */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-on-surface-variant pl-4 hover:bg-surface-container-low transition-colors text-label-md py-2 uppercase tracking-wider font-bold">
-                <span>Price Range</span>
+                <span>Max Price: ₹{maxPrice}</span>
               </div>
-              <div className="pl-8 py-2">
-                <input type="range" className="w-full h-1 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-primary" />
+              <div className="pl-8 py-2 pr-4">
+                <input 
+                  type="range" 
+                  min="0"
+                  max="50000"
+                  step="500"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(parseInt(e.target.value))}
+                  onMouseUp={() => setFilter('priceRange', [0, maxPrice])}
+                  onTouchEnd={() => setFilter('priceRange', [0, maxPrice])}
+                  className="w-full h-1 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-primary" 
+                />
                 <div className="flex justify-between mt-3 text-caption opacity-60">
-                  <span>$0</span>
-                  <span>$5000+</span>
+                  <span>₹0</span>
+                  <span>₹50000</span>
                 </div>
               </div>
             </div>
@@ -103,7 +117,7 @@ function ProductsPageContent() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 px-6 lg:px-12 py-12 lg:py-20 w-full overflow-hidden">
+      <main className="flex-1 px-6 lg:px-12 py-12 lg:py-20 w-full overflow-x-hidden">
         {/* Header Section */}
         <motion.header 
           initial={{ opacity: 0, y: 20 }}
@@ -142,7 +156,7 @@ function ProductsPageContent() {
           </div>
         ) : (
           <AnimatePresence mode="popLayout">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-8 gap-y-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-8 gap-y-12 pb-24 md:pb-0">
               {products.length > 0 ? (
                 products.map((product, idx) => (
                   <motion.div 
@@ -152,7 +166,7 @@ function ProductsPageContent() {
                     viewport={{ once: true, margin: "-50px" }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ delay: (idx % 4) * 0.1, duration: 0.5 }}
-                    key={product.id} 
+                    key={product._id || product.id || idx} 
                     className="product-card-hover group relative flex flex-col transition-all duration-500"
                   >
                     <div className="aspect-[4/5] relative overflow-hidden bg-surface-container-low rounded-2xl mb-6 soft-shadow">
@@ -172,11 +186,23 @@ function ProductsPageContent() {
                       <button 
                         onClick={(e) => {
                           e.preventDefault();
-                          toast('Added to Wishlist', { icon: '❤️' });
+                          toggleItem({
+                            id: product._id || product.id || '',
+                            name: product.name,
+                            price: product.price,
+                            compareAtPrice: product.compareAtPrice,
+                            image: product.images?.[0] || '',
+                            slug: product.slug,
+                          });
+                          if (!isInWishlist(product._id || product.id || '')) {
+                            toast.success('Added to Wishlist', { icon: '❤️' });
+                          } else {
+                            toast('Removed from Wishlist');
+                          }
                         }}
-                        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 dark:bg-black/20 backdrop-blur-md flex items-center justify-center text-white md:opacity-0 transform md:translate-y-4 transition-all duration-300 hover:bg-primary hover:text-white md:group-hover:opacity-100 md:group-hover:translate-y-0 z-20 active:scale-90"
+                        className={`absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 dark:bg-black/20 backdrop-blur-md flex items-center justify-center transition-all duration-300 md:opacity-0 transform md:translate-y-4 md:group-hover:opacity-100 md:group-hover:translate-y-0 z-20 active:scale-90 ${isInWishlist(product._id || product.id || '') ? 'text-red-500 opacity-100 translate-y-0' : 'text-white hover:bg-primary hover:text-white'}`}
                       >
-                        <Heart className="w-5 h-5" />
+                        <Heart className="w-5 h-5" fill={isInWishlist(product._id || product.id || '') ? "currentColor" : "none"} />
                       </button>
                       
                       <div className="absolute bottom-0 left-0 p-4 w-full bg-gradient-to-t from-black/80 via-black/40 to-transparent md:translate-y-full md:group-hover:translate-y-0 transition-transform duration-500 ease-out z-20">
@@ -184,7 +210,7 @@ function ProductsPageContent() {
                           onClick={(e) => {
                             e.preventDefault();
                             addItem({
-                              id: product.id,
+                              id: product._id || product.id || '',
                               name: product.name,
                               price: product.price,
                               quantity: 1,
@@ -211,9 +237,16 @@ function ProductsPageContent() {
                             {product.name}
                           </h3>
                         </Link>
-                        <p className="font-label-md text-on-surface whitespace-nowrap bg-surface-container-low px-2 py-1 rounded-md">
-                          ${product.price.toFixed(2)}
-                        </p>
+                        <div className="flex items-center gap-2 bg-surface-container-low px-2 py-1 rounded-md">
+                          <p className="font-label-md text-[#00C853] font-bold whitespace-nowrap">
+                            ₹{product.price.toFixed(2)}
+                          </p>
+                          {product.compareAtPrice && product.compareAtPrice > product.price && (
+                            <p className="font-label-md text-on-surface-variant line-through whitespace-nowrap opacity-60 text-xs">
+                              ₹{product.compareAtPrice.toFixed(2)}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <p className="text-on-surface-variant font-caption line-clamp-2 mt-1">
                         {product.description}

@@ -10,16 +10,16 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-// Interceptors for adding auth token if needed in the future
+// Request Interceptor
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('auth-storage'); // Example based on standard Zustand persist name if used
-        if (token) {
+        const authData = localStorage.getItem('auth-storage');
+        if (authData) {
             try {
-                const parsed = JSON.parse(token);
-                if (parsed.state && parsed.state.token) {
-                    config.headers.Authorization = `Bearer ${parsed.state.token}`;
+                const parsed = JSON.parse(authData);
+                if (parsed.state && parsed.state.accessToken) {
+                    config.headers.Authorization = `Bearer ${parsed.state.accessToken}`;
                 }
             } catch (e) {}
         }
@@ -27,6 +27,93 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Response Interceptor for handling 401s and refreshing tokens
+let isRefreshing = false;
+let failedQueue: { resolve: (value?: unknown) => void, reject: (reason?: any) => void }[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // If it's a 401 and we haven't already retried
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise(function(resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = 'Bearer ' + token;
+          return api(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Attempt to refresh token using HttpOnly cookie
+        const res = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+        
+        if (res.status === 200 && res.data?.data?.accessToken) {
+          const newAccessToken = res.data.data.accessToken;
+          
+          // Update zustand store in localStorage
+          if (typeof window !== 'undefined') {
+             const authData = localStorage.getItem('auth-storage');
+             if (authData) {
+                 try {
+                     const parsed = JSON.parse(authData);
+                     parsed.state.accessToken = newAccessToken;
+                     localStorage.setItem('auth-storage', JSON.stringify(parsed));
+                 } catch (e) {}
+             }
+          }
+          
+          api.defaults.headers.common['Authorization'] = 'Bearer ' + newAccessToken;
+          originalRequest.headers.Authorization = 'Bearer ' + newAccessToken;
+          
+          processQueue(null, newAccessToken);
+          return api(originalRequest);
+        }
+      } catch (err) {
+        processQueue(err, null);
+        // If refresh fails (e.g. token expired), we could trigger a logout action here
+        if (typeof window !== 'undefined') {
+            const authData = localStorage.getItem('auth-storage');
+            if (authData) {
+                 try {
+                     const parsed = JSON.parse(authData);
+                     parsed.state.accessToken = null;
+                     parsed.state.isAuthenticated = false;
+                     parsed.state.user = null;
+                     localStorage.setItem('auth-storage', JSON.stringify(parsed));
+                     window.location.href = '/login';
+                 } catch (e) {}
+            }
+        }
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+    
+    return Promise.reject(error);
+  }
 );
 
 export default api;

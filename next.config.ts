@@ -5,18 +5,15 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
+        hostname: "**",
       },
       {
         protocol: "http",
-        hostname: "localhost",
+        hostname: "**",
       }
     ],
   },
 };
 
+// Force Next.js to restart and rebuild the route tree
 export default nextConfig;

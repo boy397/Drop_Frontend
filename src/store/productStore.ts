@@ -1,8 +1,15 @@
 import { create } from 'zustand';
 import api from '../lib/api';
 
+export interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+}
+
 export interface Product {
-  id: string;
+  _id?: string;
+  id?: string;
   name: string;
   description: string;
   price: number;
@@ -17,6 +24,7 @@ interface ProductState {
   products: Product[];
   trendingProducts: Product[];
   productDetails: Record<string, Product>;
+  categories: Category[];
   isLoading: boolean;
   error: string | null;
   filters: {
@@ -28,6 +36,7 @@ interface ProductState {
   fetchProducts: (query?: Record<string, unknown>) => Promise<void>;
   fetchTrendingProducts: () => Promise<void>;
   fetchProductBySlug: (slug: string) => Promise<void>;
+  fetchCategories: () => Promise<void>;
   setFilter: (key: keyof ProductState['filters'], value: unknown) => void;
   clearFilters: () => void;
 }
@@ -36,6 +45,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
   products: [],
   trendingProducts: [],
   productDetails: {},
+  categories: [],
   isLoading: false,
   error: null,
   filters: {
@@ -50,6 +60,10 @@ export const useProductStore = create<ProductState>((set, get) => ({
       const { filters } = get();
       const params = new URLSearchParams();
       if (filters.category) params.append('category', filters.category);
+      if (filters.priceRange) {
+        params.append('minPrice', filters.priceRange[0].toString());
+        params.append('maxPrice', filters.priceRange[1].toString());
+      }
       
       // Merge with passed query
       Object.entries(query).forEach(([key, value]) => {
@@ -89,6 +103,15 @@ export const useProductStore = create<ProductState>((set, get) => ({
     } catch (error: unknown) {
       const err = error as Error;
       set({ error: err.message || 'Failed to fetch product details', isLoading: false });
+    }
+  },
+
+  fetchCategories: async () => {
+    try {
+      const response = await api.get('/categories');
+      set({ categories: response.data.data.categories });
+    } catch (error: unknown) {
+      console.error('Failed to fetch categories:', error);
     }
   },
 

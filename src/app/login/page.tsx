@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { motion } from 'framer-motion';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import api from '@/lib/api'; // assuming api is in lib
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -21,6 +24,27 @@ export default function LoginPage() {
       router.push('/');
     } catch (err) {
       // Error is handled in the store
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      const res = await api.post('/auth/google-login', {
+        idToken: credentialResponse.credential,
+      });
+      
+      // Update auth store with response data
+      useAuthStore.setState({ 
+        user: res.data.data.user, 
+        accessToken: res.data.data.accessToken,
+        isAuthenticated: true 
+      });
+      
+      toast.success('Successfully logged in with Google');
+      router.push('/');
+    } catch (err: any) {
+      console.error('Google login failed:', err);
+      toast.error('Google login failed. Please try again.');
     }
   };
 
@@ -41,6 +65,23 @@ export default function LoginPage() {
             {error}
           </div>
         )}
+
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
+          <div className="flex justify-center mb-6">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => {
+                toast.error('Google Sign In failed');
+              }}
+            />
+          </div>
+        </GoogleOAuthProvider>
+        
+        <div className="relative flex items-center py-5">
+          <div className="flex-grow border-t border-white/10"></div>
+          <span className="flex-shrink-0 mx-4 text-gray-500 text-sm">Or continue with</span>
+          <div className="flex-grow border-t border-white/10"></div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
